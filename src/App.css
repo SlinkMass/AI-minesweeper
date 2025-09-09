@@ -1,0 +1,64 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr); /* 9 equal columns */
+  aspect-ratio: 1 / 1; /* make board square */
+  width: 90vmin; /* responsive: 90% of viewport smaller side */
+  max-width: 600px; /* optional cap */
+  margin: auto;
+}
+
+.tile {
+  aspect-ratio: 1 / 1; /* keep tiles square */
+  width: 100%;
+  height: 100%;
+  font-size: clamp(12px, 2vmin, 20px);
+  text-align: center;
+  border: 1px solid #444;
+  padding: 0;
+  margin: 0;
+  background: #ccc;
+  cursor: pointer;
+}
