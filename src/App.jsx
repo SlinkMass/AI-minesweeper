@@ -9,29 +9,38 @@ function App() {
   const [grid, setGrid] = useState(Array.from({ length: size }, () => Array(size).fill("")));
   const [revealed, setRevealed] = useState([]);
   const [flagged, setFlagged] = useState([]);
-  const [gameStarted, setGameStarted] = useState(false)
-  
+  const [gameStarted, setGameStarted] = useState(false);
 
-  // Generate the board once on mount
-  function initialise(r, c){
-    setGameStarted(true)
+  function initialise(r, c) {
+    setGameStarted(true);
 
     const newGrid = generateBoard(size, bombNum, r, c);
     setGrid(newGrid);
     setRevealed(Array.from({ length: size }, () => Array(size).fill(false)));
     setFlagged(Array.from({ length: size }, () => Array(size).fill(false)));
 
-    revealTile(r, c, newGrid)
+    revealTile(r, c, newGrid);
   }
 
   function revealTile(r, c, gridToUse = grid) {
+    if (gridToUse[r][c] === 9) {
+      setRevealed(
+        produce(draft => {
+          draft[r][c] = true;
+        })
+      );
+
+      setTimeout(() => {
+        resetBoard();
+      }, 1000);
+
+      return;
+    }
+
     setRevealed(
       produce(draft => {
-
         function floodFill(row, col) {
-
           if (row < 0 || row >= size || col < 0 || col >= size) return;
-
           if (draft[row][col]) return;
 
           draft[row][col] = true;
@@ -55,18 +64,41 @@ function App() {
   function flagTile(r, c) {
     setFlagged(
       produce(draft => {
-        if (!revealed[r][c]){
-          draft[r][c] = !draft[r][c]
+        if (!revealed[r][c]) {
+          draft[r][c] = !draft[r][c];
         }
       })
-    )
+    );
   }
 
-  function resetBoard(){
+  function resetBoard() {
     setRevealed(Array.from({ length: size }, () => Array(size).fill(false)));
     setFlagged(Array.from({ length: size }, () => Array(size).fill(false)));
-    setGrid(Array.from({ length: size }, () => Array(size).fill("")))
-    setGameStarted(false)
+    setGrid(Array.from({ length: size }, () => Array(size).fill("")));
+    setGameStarted(false);
+  }
+
+  async function AIMove() {
+    try {
+      const response = await fetch("/api/get_move", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(grid.map((row, y) => row.map((cell, x) => (revealed[y][x] ? cell : "")))),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("Move from backend:", data);
+      return data;
+    } catch (error) {
+      console.error("Error fetching move:", error);
+      return null;
+    }
   }
 
   return (
@@ -78,22 +110,42 @@ function App() {
               key={`${r}-${c}`}
               value={cell}
               isRevealed={revealed[r]?.[c]}
-              onClick={() => gameStarted ? revealTile(r, c) : initialise(r, c)}
+              onClick={() => (gameStarted ? revealTile(r, c) : initialise(r, c))}
               isFlagged={flagged[r]?.[c]}
               onContextMenu={() => flagTile(r, c)}
             />
           ))
         )}
       </div>
-      <button className="button" onClick={resetBoard}>Reset</button>
+      <button className="button" onClick={resetBoard}>
+        Reset
+      </button>
+      <button className="button" onClick={AIMove}>
+        AI Move
+      </button>
     </>
   );
 }
 
-function Tile({ value, isRevealed, onClick, isFlagged, onContextMenu}) {
+function Tile({ value, isRevealed, onClick, isFlagged, onContextMenu }) {
   return (
-    <button className="tile rounded-0" onClick={onClick} onContextMenu={(e) => {e.preventDefault(); onContextMenu();}}>
-      {isFlagged ? "🚩" : (isRevealed ? (value === 9 ? "X" : value > 0 ? value : "") : "")}
+    <button
+      className="tile rounded-0"
+      onClick={onClick}
+      onContextMenu={e => {
+        e.preventDefault();
+        onContextMenu();
+      }}
+    >
+      {isFlagged
+        ? "🚩"
+        : isRevealed
+        ? value === 9
+          ? "X"
+          : value > 0
+          ? value
+          : ""
+        : ""}
     </button>
   );
 }
@@ -117,9 +169,14 @@ function generateBoard(size, bombNum, safeR, safeC) {
   }
 
   const directions = [
-    [-1, -1], [-1, 0], [-1, 1],
-    [0, -1],          [0, 1],
-    [1, -1],  [1, 0], [1, 1],
+    [-1, -1],
+    [-1, 0],
+    [-1, 1],
+    [0, -1],
+    [0, 1],
+    [1, -1],
+    [1, 0],
+    [1, 1],
   ];
 
   for (let r = 0; r < size; r++) {
@@ -140,6 +197,5 @@ function generateBoard(size, bombNum, safeR, safeC) {
 
   return grid;
 }
-
 
 export default App;
