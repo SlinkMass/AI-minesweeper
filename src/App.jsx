@@ -85,7 +85,7 @@ function App() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(grid.map((row, y) => row.map((cell, x) => (revealed[y][x] ? cell : "")))),
+        body: JSON.stringify(grid.map((row, y) => row.map((cell, x) => (revealed[y][x] ? cell : (flagged[y][x] ? 9 : -1))))),
       });
 
       if (!response.ok) {
@@ -93,11 +93,13 @@ function App() {
       }
 
       const data = await response.json();
-      console.log("Move from backend:", data);
-      return data;
+      if (data["flag"]){
+        flagTile(data["move"][0], data["move"][1])
+      } else {
+        revealTile(data["move"][0], data["move"][1])
+      }
     } catch (error) {
       console.error("Error fetching move:", error);
-      return null;
     }
   }
 
