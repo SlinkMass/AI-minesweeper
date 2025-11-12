@@ -10,6 +10,8 @@ function App() {
   const [revealed, setRevealed] = useState([]);
   const [flagged, setFlagged] = useState([]);
   const [gameStarted, setGameStarted] = useState(false);
+  const [training, setTraining] = useState(false);
+  const [trainingMessage, setTrainingMessage] = useState("");
 
   function initialise(r, c) {
     setGameStarted(true);
@@ -78,14 +80,18 @@ function App() {
     setGameStarted(false);
   }
 
-  async function AIMove() {
+  async function AIMove(type) {
     try {
-      const response = await fetch("/api/get_move", {
+      const response = await fetch("/api/get_move_" + type, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(grid.map((row, y) => row.map((cell, x) => (revealed[y][x] ? cell : (flagged[y][x] ? 9 : -1))))),
+        body: JSON.stringify(
+          grid.map((row, y) =>
+            row.map((cell, x) => (revealed[y][x] ? cell : flagged[y][x] ? 9 : -1))
+          )
+        ),
       });
 
       if (!response.ok) {
@@ -93,13 +99,30 @@ function App() {
       }
 
       const data = await response.json();
-      if (data["flag"]){
-        flagTile(data["move"][0], data["move"][1])
+      if (data["flag"]) {
+        flagTile(data["move"][0], data["move"][1]);
       } else {
-        revealTile(data["move"][0], data["move"][1])
+        revealTile(data["move"][0], data["move"][1]);
       }
     } catch (error) {
       console.error("Error fetching move:", error);
+    }
+  }
+
+  // 🧠 Train RL Agent
+  async function trainRL() {
+    setTraining(true);
+    setTrainingMessage("Training RL agent...");
+
+    try {
+      const response = await fetch("/api/train_rl", { method: "POST" });
+      const data = await response.json();
+      setTrainingMessage(data.message || "Training complete!");
+    } catch (error) {
+      setTrainingMessage("Training failed. Check server logs.");
+      console.error(error);
+    } finally {
+      setTraining(false);
     }
   }
 
@@ -119,12 +142,26 @@ function App() {
           ))
         )}
       </div>
-      <button className="button" onClick={resetBoard}>
-        Reset
-      </button>
-      <button className="button" onClick={AIMove}>
-        AI Move
-      </button>
+
+      <div className="controls">
+        <button className="button" onClick={resetBoard}>
+          Reset
+        </button>
+        <button className="button" onClick={() => AIMove("basic")}>
+          Basic ruleset
+        </button>
+        <button className="button" onClick={() => AIMove("guess")}>
+          Probability-based
+        </button>
+        <button className="button" onClick={trainRL} disabled={training}>
+          {training ? "Training..." : "Train RL Agent"}
+        </button>
+        <button className="button" onClick={() => AIMove("rl")}>
+          RL Agent Move
+        </button>
+      </div>
+
+      {trainingMessage && <p style={{ marginTop: "10px" }}>{trainingMessage}</p>}
     </>
   );
 }
